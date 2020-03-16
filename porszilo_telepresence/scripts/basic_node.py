@@ -78,7 +78,7 @@ class Telepresence():
 	cosy_sinp = 1 - 2 * (qy * qy + qz * qz)
 	yaw = math.atan2(siny_cosp, cosy_sinp)
 
-	deg = yaw * 180 / math.pi + 90
+	deg = 90 - yaw * 180 / math.pi
         # hány fokkal kell elforgatnunk a térépet hogy a robot nézési iránya függőlegesen legyen
 
         orig_map = np.array(self.grid.data)  # beolvassuk a térképet és a látott képet
