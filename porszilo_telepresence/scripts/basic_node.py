@@ -5,6 +5,7 @@ import sys
 import rospy
 from geometry_msgs.msg         import PoseStamped
 from porszilo_telepresence.srv import ClickedPoint, ClickedPointResponse
+from porszilo_telepresence.msg import CanvasSize
 from sensor_msgs.msg           import Image
 from nav_msgs.msg              import OccupancyGrid, Odometry
 import cv2
@@ -36,6 +37,10 @@ class Telepresence():
     
     def cbOdom(self, data):
         self.odom = data
+
+    def cbCanvasSize(self, data):
+        self.canvas['x'] = data.width
+        self.canvas['y'] = data.height
     
     
     ## loop
@@ -173,10 +178,11 @@ class Telepresence():
 
         self.clicked_depth = self.cv_depth[self.point_y, self.point_x]
 
+
+        rospy.loginfo("----------------")
         rospy.loginfo("Clicked depth: {}".format(self.clicked_depth))
 
         if np.isnan(self.clicked_depth):
-            rospy.loginfo("NAN value got!")
             return False # success of service call
 
         # quaternions to yaw
@@ -219,9 +225,6 @@ class Telepresence():
         if self.point_y > self.cv_depth.shape[0]:
             self.point_y = self.cv_depth.shape[0] - 1
 
-        rospy.loginfo("----------------")
-        rospy.loginfo("Clicked point: {}, {}".format(self.point_x, self.point_y))
-
         res = ClickedPointResponse()
         res.success = self.clickedTo3D()
 
@@ -253,8 +256,8 @@ class Telepresence():
             rospy.loginfo("Telepresence node is being shut down")
             quit()
 
-        try_again_after = 5
-        rate = rospy.Rate(try_again_after)
+        try_again_after = 2
+        rate = rospy.Rate(1.0/try_again_after)
         while self.grid.data[1:] == self.grid.data[:-1]: # while all elements are the same (means map is empty)
             rospy.logerr("Received occupancy grid is empty, trying again in {} seconds".format(try_again_after))
             rate.sleep()
@@ -264,6 +267,7 @@ class Telepresence():
         rospy.Subscriber("/camera/depth/image_raw", Image, self.cbDepth)
         rospy.Subscriber("/move_base/global_costmap/costmap", OccupancyGrid, self.cbGrid)
         rospy.Subscriber("/odometry/filtered", Odometry, self.cbOdom)
+        rospy.Subscriber("/telepresence/canvas_size", CanvasSize, self.cbCanvasSize)
     
         rospy.loginfo('All messages have arrived at least once, starting publishers')
         self.goalPub  = rospy.Publisher("/porszilo/move_base/goal", PoseStamped, queue_size=5)

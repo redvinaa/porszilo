@@ -9,57 +9,98 @@
 		<script type="text/javascript" 
 						src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js">
 		</script>
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+		<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
   </head>
 
   <body>
-		<img id="image" src="http://localhost:8080/stream?topic=/telepresence/image"
-				width="700" height="500" onclick="showCoords(event)"/>
+		<div class="jumbotron jumbotron-fluid">
+			<div class="container">
+				<h1 class="display-4">Telepresence control</h1>
+				<img id="image" src="http://localhost:8080/stream?topic=/telepresence/image"
+						width="700" height="500" onload="cbClientResized()" onclick="showCoords(event)"/>
+			</div>
+		</div>
 		<script>
-			var ros = new ROSLIB.Ros({
-				url: 'ws://localhost:9090'
-			});
-
-  		ros.on('connection', function() {
-  		  console.log('Connected to websocket server.');
-				var image = document.getElementById('image');
-	 		});
-
-  		ros.on('error', function(error) {
-  		  console.log('Error connecting to websocket server: ', error);
-  		  alert('Error connecting to websocket server: ', error);
-  		});
-
-  		ros.on('close', function() {
-  		  console.log('Connection to websocket server closed.');
-  		});
-
-			var clickedPointSrv = new ROSLIB.Service({
-				ros: ros,
-				name: '/telepresence/clicked_point',
-				serviceType: 'porszilo_telepresence/ClickedPoint'
-			})
-			
-      function showCoords(event) {
-				var cX = event.clientX;
-				var cY = event.clientY;
-				var sX = event.screenX;
-				var sY = event.screenY;
-
-				var request = new ROSLIB.ServiceRequest({
-					x: cX,
-					y: cY
+				var ros = new ROSLIB.Ros({
+					url: 'ws://localhost:9090'
+				});
+				
+				ros.on('connection', function() {
+				  console.log('Connected to websocket server.');
+				});
+				
+				ros.on('error', function(error) {
+				  console.log('Error connecting to websocket server: ', error);
+					alert('Error connecting to websocket server: ', error);
+				});
+				
+				ros.on('close', function() {
+				  console.log('Connection to websocket server closed.');
+				});
+				
+				var pubCanvasSize = new ROSLIB.Topic({
+					ros: ros,
+					name: "/telepresence/canvas_size",
+					messageType: 'porszilo_telepresence/CanvasSize'
 				})
+				
+				var clickedPointSrv = new ROSLIB.Service({
+					ros: ros,
+					name: '/telepresence/clicked_point',
+					serviceType: 'porszilo_telepresence/ClickedPoint'
+				})
+				
+				function showCoords(event) {
+					var cX = event.clientX;
+					var cY = event.clientY;
+					var sX = event.screenX;
+					var sY = event.screenY;
+				
+					var request = new ROSLIB.ServiceRequest({
+						x: cX,
+						y: cY
+					})
+				
+					console.log("Sending request...");
+				
+					clickedPointSrv.callService(request, function(result) {
+						console.log("Calling service " + clickedPointSrv.name + ", success: " + result.success);
+						if (!result.success) {
+							alert('Clicked point is invalid');
+						}
+					})
+				}
+				
+				var image = document.getElementById("image")
+				
+				function cbClientResized() {
+					var w = document.documentElement.clientWidth;
+					var h = document.documentElement.clientHeight;
+				
+					var img_to_window_size = 0.8;
+					var img_h_to_w = 3/4;
+					var height_offset = h * 0.2;
 
-				console.log("Sending request...")
-
-				clickedPointSrv.callService(request, function(result) {
-					console.log("Calling service " + clickedPointSrv.name + ", success: " + result.success)
-					if (!result.success) {
-						alert('Clicked point is invalid')
+					if (w * img_to_window_size * img_h_to_w > (h - height_offset)) {
+						image.height = h * img_to_window_size;
+						image.width = image.height / img_h_to_w;
 					}
-				})
-      }
-			
+					else {
+						image.width = w * img_to_window_size;
+						image.height = image.width * img_h_to_w;
+					}
+				
+					var canvasSize = new ROSLIB.Message({
+						width: image.width,
+						height: image.height
+					});
+					pubCanvasSize.publish(canvasSize);
+				}
+				
+				window.addEventListener("resize", cbClientResized);
 		</script>
   </body>
 </html>
