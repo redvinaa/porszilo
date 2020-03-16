@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+    
+	<arg name="simulation"           default="true"/>
+
+	<!-- gazebo -->
+	<arg name="gui"                  default="false"/>
+	<arg name="paused"               default="false"/>
+	<arg name="world_name"           default="$(find porszilo_description)/worlds/dolly_city.world"/>
+	<arg name="gz_verbose"           default="false"/>
+
+  <arg name="x"                    default="0.0"/>
+  <arg name="y"                    default="0.0"/>
+  <arg name="z"                    default="0.0"/>
+  <arg name="Y"                    default="0.0" />
+
+	<!-- rviz -->
+	<arg name="rviz"                 default="true"/>
+
+	<!-- urdf -->
+	<arg name="model"                default="$(find porszilo_description)/urdf/komodo2_gazebo.xacro"/>
+	<arg name="controllers"          default="true"/>
+	<arg name="rgb_cam"              default="true"/>
+	<arg name="depth_cam"            default="true"/>
+	<arg name="imu"                  default="true"/>
+	<arg name="lidar"                default="true"/>
+
+	<!-- mapping -->
+	<arg name="imu_publish_tf"       default="false"/>
+	<arg name="hector_slam"          default="true"/>
+	<arg name="cartographer"         default="false"/>
+	<arg name="rtabmap"              default="true"/>
+	<arg name="have_map"             default="false"/>
+	<arg name="map"                  default="$(find porszilo)/maps/map.yaml"/>
+	<arg name="robot_localization"   default="true"/>
+			<!-- rtabmap -->
+			<arg name="localization"        default="false"/>
+			<arg name="args"                default="-d"/> <!-- delete_db_on_start -->
+
+	<!-- navigation -->
+	<arg name="moveit"               default="false"/>
+	<arg name="move_base"            default="true"/>
+	<arg name="teleop"               default="false"/>
+	<arg name="telepresence"         default="true"/>
+	
+	<arg name="keyboard"             default="false"/>
+	<!--joystick -->
+	<arg name="joy_dev"              default="/dev/input/js0"/>
+	<arg name="joy_profile"          default="xbox"/>
+	<arg name="twist_mux"            default="true"/>
+
+<!--===================================================================================-->
+
+		<!-- robot_description -->
+		<param name="robot_description" command="xacro -i $(arg model)
+                															depth_cam:=$(arg depth_cam)
+                															rgb_cam:=$(arg rgb_cam)
+                															imu:=$(arg imu)
+                															lidar:=$(arg lidar)" />
+    
+	<!-- simulation -->
+	<group if="$(arg simulation)">
+		<include file="$(find gazebo_ros)/launch/empty_world.launch">
+			<arg name="gui"               value="$(arg gui)"/>
+			<arg name="paused"            value="$(arg paused)"/>
+			<arg name="world_name"        value="$(arg world_name)"/>
+			<arg name="verbose"           value="$(arg gz_verbose)"/>
+		</include>
+
+		<node name="porszilo_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" 
+			args="-urdf -param robot_description -model porszilo -x $(arg x) -y $(arg y) -z $(arg z) -Y $(arg Y)" />
+
+		<group>
+    	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen"/>
+    	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="false" output="screen"/>
+		</group>
+	</group>
+
+		<include if="$(arg controllers)" file="$(find porszilo_control)/launch/porszilo_controllers.launch"/>
+    
+		<node if="$(arg rviz)" 
+				name="rviz" pkg="rviz" type="rviz" 
+				args="-d $(find porszilo_description)/config/porszilo.rviz"/>
+
+    <!--if no one publishes map-odom tf, load static tf-->
+		<group unless="$(arg hector_slam)">
+			<group unless="$(arg cartographer)">
+				<group unless="$(arg imu_publish_tf)">
+					<node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster" 
+							args="0 0 0 0 0 0 /map /odom 10" /> 
+				</group>
+			</group>
+		</group>
+    
+    <!--load hardware stuff-->
+    <group unless="$(arg simulation)">
+				<node name="battery_alarm" pkg="enjoy_battery_alarm" type="battery_alarm" output="screen"/>
+			<machine name="asti-rpi3b" address="192.168.0.94" user="asti" env-loader="/opt/ros/melodic/env.sh" default="false" />
+        <param name="robot_description" command="$(find xacro)/xacro '$(find komodo2_description)/urdf/komodo2.xacro' -i" />
+        <include file="$(find komodo2_hw)/launch/komodo2_hw.launch" />
+                
+        <group if="$(arg depth_cam)">
+            <include file="$(find intel_d435)/launch/d435.launch" />
+        </group>
+    
+        <group if="$(arg rgb_cam)">
+            <include file="$(find usb_cams)/launch/front_cam.launch" />
+        </group>
+                
+        <group if="$(arg lidar)">
+            <include file="$(find lidar_urg_node)/launch/lidar.launch" />
+        </group>
+        
+    </group>
+    
+    <include if="$(arg twist_mux)"   file="$(find ros_twist_mux)/launch/twist_mux.launch" />
+    
+    <include if="$(arg hector_slam)" file="$(find porszilo_navigation)/launch/hector_slam.launch" >
+			<arg unless="$(arg rtabmap)" name="pub_map_odom_transform" value="true"/>
+		</include>
+
+		<include if="$(arg cartographer)" file="$(find porszilo_navigation)/launch/cartographer.launch"/>
+
+    <include if="$(arg rtabmap)"     file="$(find porszilo_navigation)/launch/rtabmap.launch">
+			<arg name="simulation"          value="$(arg simulation)"/>
+    	<arg name="localization"        value="$(arg localization)"/>
+			<arg name="args"                value="$(arg args)"/>
+		</include>
+    
+    <include if="$(arg robot_localization)"	file="$(find porszilo_navigation)/launch/robot_localization.launch">
+			<arg name="imu_publish_tf" value="$(arg imu_publish_tf)"/>
+			<arg name="ukf_node"       value="$(arg rtabmap)"/>
+		</include>
+
+    <include if="$(arg move_base)"   file="$(find porszilo_navigation)/launch/move_base.launch">
+			<arg if="$(arg hector_slam)" name="move_base_map_topic" default="/hector_slam/map"/>
+			<group unless="$(arg hector_slam)">
+				<arg if="$(arg rtabmap)" name="move_base_map_topic" default="/rtabmap/octomap_grid"/>
+				<arg unless="$(arg rtabmap)" name="move_base_map_topic" default="/map"/>
+			</group>
+		</include>
+
+		<node if="$(arg keyboard)" output="screen"
+			name="teleop_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py">
+			<remap from="turtle1/cmd_vel" to="cmd_vel"/>
+		</node>
+    
+    <!--group if="$(arg teleop)" >
+        <include file="$(find komodo2_teleop)/launch/komodo2_teleop.launch">
+            <arg name="joy_dev" value="$(arg joy_dev)"/>
+            <arg name="joy_profile" value="$(arg joy_profile)"/>
+        </include>
+    </group-->
+    
+    <node if="$(arg have_map)" name="map_server" pkg="map_server" type="map_server" args="$(arg map)" />
+
+		<include if="$(arg telepresence)" 
+				file="$(find porszilo_telepresence)/launch/telepresence.launch"/>
+
+    <!--group if="$(arg moveit)">
+        <include file="$(find komodo2_moveit_config)/launch/move_group.launch" />
+    </group-->
+    
+    
+</launch>

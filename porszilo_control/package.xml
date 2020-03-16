@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>porszilo_control</name>
+  <version>0.0.0</version>
+  <description>The porszilo_control package</description>
+
+  <maintainer email="redvinaa@gmail.com">Vince Reda</maintainer>
+
+  <license>TODO</license>  
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>controller_manager</build_depend>
+  <exec_depend>controller_manager</exec_depend>
+  
+  <export></export>
+</package>

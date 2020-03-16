@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>porszilo_navigation</name>
+    <version>0.0.0</version>
+    <description>The porszilo_navigation package</description>
+    
+    <maintainer email="redvinaa@gmail.com">Vince Reda</maintainer>
+    
+    <license>TODO</license>  
+ 
+    
+    <buildtool_depend>catkin</buildtool_depend>
+    
+    
+    <!-- The export tag contains other, unspecified, tags -->
+    <export>
+        <!-- Other tools can request additional information be placed here -->
+        
+    </export>
+</package>

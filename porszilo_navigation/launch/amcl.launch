@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="scan_topic" default="/scan" />
+    <arg name="map_topic"  default="/map" />
+    <arg name="x"          default="0.0"/>
+    <arg name="y"          default="0.0"/>
+    <arg name="Y"          default="0.0" />
+    
+    <!-- <rosparam command="load" file="$(find porszilo_navigation)/config/amcl_params.yaml" /> -->
+    <!-- <rosparam command="load" file="$(find porszilo_navigation)/config/amcl_params.yaml" ns="amcl"/> -->
+    <node pkg="amcl" type="amcl" name="amcl" required="true" output="log">
+    	<rosparam command="load" file="$(find porszilo_navigation)/config/amcl_params.yaml" />
+      <remap from="scan"           to="$(arg scan_topic)"/>  
+      <remap from="map"            to="$(arg map_topic)"/>  
+      <param name="initial_pose_x" value="$(arg x)"/>  
+      <param name="initial_pose_y" value="$(arg y)"/>
+      <param name="initial_pose_a" value="$(arg Y)"/>
+    </node>
+    
+</launch>

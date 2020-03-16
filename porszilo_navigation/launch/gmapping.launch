@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+    
+    <node pkg="gmapping" type="slam_gmapping" name="gmapping" required="true" output="screen">
+			<rosparam command="load" file="$(find porszilo_navigation)/config/gmapping_params.yaml"/>
+			<remap from="map" to="gmapping/map"/>
+			<remap from="map_metadata" to="gmapping/map_metadata"/>
+		</node>
+    
+</launch>

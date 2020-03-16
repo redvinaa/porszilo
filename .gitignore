@@ -1,0 +1,7 @@
+*~
+*.pyc
+*CMakeLists.txt.user
+cmake-build-debug/
+build/
+.idea/
+porszilo_telepresence/bags/

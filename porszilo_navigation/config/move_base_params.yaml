@@ -1,0 +1,92 @@
+# controller_frequency: 5.0
+# recovery_behaviour_enabled: true # true
+# 
+# NavfnROS:
+#   allow_unknown: true 
+#   default_tolerance: 0.1
+# 
+# # DWAPlannerROS:
+# TrajectoryPlannerROS:
+#   # Robot configuration parameters  
+#   acc_lim_x: 0.7
+#   acc_lim_y: 0
+#   acc_lim_th: 0.5
+# 
+#   max_vel_x: 3.0
+#   min_vel_x: -0.0
+#   max_vel_theta: 0.1
+#   min_vel_theta: -0.1
+# 
+#   rot_stopped_vel: 0.05
+# 
+#   holonomic_robot: false
+#   
+#   sim_time: 5.0
+#   sim_granularity: 0.2
+# 
+#   # Goal Tolerance Parameters
+#   yaw_goal_tolerance: 0.3
+#   xy_goal_tolerance: 0.2
+#   latch_xy_goal_tolerance: true
+# 
+#   # Trajectory Scoring Parameters
+#   path_distance_bias: 20.0
+#   goal_distance_bias: 24.0
+#   occdist_scale: 0.01
+#   forward_point_distance: 0.0
+#   stop_time_buffer: 1.5
+#   scaling_speed: 0.25
+#   max_scaling_factor: 0.2
+#   publish_cost_grid: true
+# 
+#   # Oscillation Prevention Parameters
+#   oscillation_reset_dist: 0.3  # 3 * 0.1
+#   oscillation_reset_angle: 0.3 # 3 * 0.1
+#   oscillation_timeout: 3.0
+# 
+#   # Global Plan Parameters
+#   prune_plan: false
+
+
+
+
+
+controller_frequency: 5.0
+recovery_behaviour_enabled: true # true
+
+NavfnROS:
+  allow_unknown: true 
+  default_tolerance: 0.1
+
+DWAPlannerROS:
+  # Robot configuration parameters  
+  acc_lim_x: 0.6
+  acc_lim_y: 0
+  acc_lim_th: 0.7
+
+  max_vel_x: 0.5
+  min_vel_x: -0.01
+  max_vel_y: 0
+  min_vel_y: 0
+
+  max_trans_vel: 0.4
+  min_trans_vel: 0.1
+  max_rot_vel: 0.80
+  min_rot_vel: 0.00
+  
+  sim_time: 10.0
+  sim_granularity: 0.2
+
+  # Goal Tolerance Parameters
+  yaw_goal_tolerance: 0.5 
+  xy_goal_tolerance: 0.7
+  latch_xy_goal_tolerance: false
+
+  # Trajectory Scoring Parameters
+#  path_distance_bias: 32.0
+#  goal_distance_bias: 24.0
+#  occdist_scale: 0.1
+#  forward_point_distance: 0.325
+#  stop_time_buffer: 0.2
+#  scaling_speed: 0.25
+#  max_scaling_factor: 0.2

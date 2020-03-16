@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>porszilo_sim_interface</name>
+  <version>2.5.13</version>
+  <description>porszilo_sim_interface</description>
+
+  <maintainer email="redvinaa@gmail.com">Vince Reda</maintainer>
+
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>gazebo_dev</build_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <depend>roscpp</depend>
+  <depend>std_msgs</depend>
+  <depend>control_toolbox</depend>
+  <depend>controller_manager</depend>
+  <depend>pluginlib</depend>
+  <depend>hardware_interface</depend>
+  <depend>transmission_interface</depend>
+  <depend>joint_limits_interface</depend>
+  <depend>gazebo_ros_control</depend>
+  <depend>urdf</depend>
+  <depend>angles</depend>
+
+  <export>
+    <gazebo_ros_control plugin="${prefix}/porszilo_sim_plugins.xml"/>
+  </export>
+</package>

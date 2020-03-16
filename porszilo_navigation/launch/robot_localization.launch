@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+
+		<arg name="imu_publish_tf" default="true"/>
+		<arg name="ukf_node"       default="true"/>
+
+    <node pkg="imu_filter_madgwick" type="imu_filter_node" name="ImuFilter" output="screen" required="true">
+        <param name="use_mag"       type="bool"   value="true" />
+				<param name="fixed_frame"   type="string" value="odom" />
+				<param name="use_magnetic_field_msg" value="false" />
+				<param name="world_frame"   type="string" value="nwu" />
+        <remap from="imu/data_raw" to="/camera/imu/data_raw"/>
+        <remap from="imu/mag"      to="/camera/imu/magnetic"/>
+				<!-- <remap from="imu/data"/> -->
+
+				<param name="publish_tf"    type="bool"   value="$(arg imu_publish_tf)" />
+    </node>
+
+  	<node if="$(arg ukf_node)"
+				pkg="robot_localization" type="ukf_localization_node" name="ukf_se" required="true">
+    		<rosparam command="load" file="$(find porszilo_navigation)/config/ukf_params.yaml" />
+        <remap from="cmd_vel" to="mobile_base_controller/cmd_vel"/>
+				<remap from="diagnostics" to="ukf_diagnostics"/>
+		</node>
+</launch>

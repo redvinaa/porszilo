@@ -1,0 +1,24 @@
+<launch>
+	<include file="$(find porszilo)/launch/porszilo.launch">
+		<arg name="world_name"           value="worlds/empty.world"/>
+		<arg name="gui"                  value="true"/>
+	
+		<!-- rviz -->
+		<arg name="rviz"                 value="false"/>
+	
+		<!-- urdf -->
+		<arg name="rgb_cam"              value="false"/>
+		<arg name="depth_cam"            value="false"/>
+		<arg name="imu"                  value="false"/>
+		<arg name="lidar"                value="false"/>
+	
+		<!-- mapping -->
+		<arg name="robot_localization"   value="false"/>
+	
+		<!-- navigation -->
+		<arg name="moveit"               value="false"/>
+		<arg name="move_base"            value="false"/>
+		<arg name="teleop"               value="false"/>
+
+	</include>
+</launch>

@@ -1,0 +1,17 @@
+<launch>
+	<arg name="model"                default="$(find porszilo_description)/urdf/main.xacro"/>
+
+	<arg name="rgb_cam"              default="false"/>
+	<arg name="depth_cam"            default="false"/>
+	<arg name="imu"                  default="false"/>
+	<arg name="lidar"                default="false"/>
+
+	<param name="robot_description" command="xacro -i $(arg model)
+              															depth_cam:=$(arg depth_cam)
+              															rgb_cam:=$(arg rgb_cam)
+              															imu:=$(arg imu)
+              															lidar:=$(arg lidar)" />
+	<include file="$(find porszilo_control)/launch/porszilo_controllers.launch"/>
+	<node name="porszilo_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" 
+		args="-urdf -param robot_description -model porszilo" />
+</launch>
