@@ -16,7 +16,7 @@
   <arg name="Y"                    default="0.0" />
 
 	<!-- rviz -->
-	<arg name="rviz"                 default="true"/>
+	<arg name="rviz"                 default="false"/>
 
 	<!-- urdf -->
 	<arg name="model"                default="$(find porszilo_description)/urdf/komodo2_gazebo.xacro"/>
