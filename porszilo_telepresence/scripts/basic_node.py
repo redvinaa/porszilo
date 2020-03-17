@@ -14,6 +14,7 @@ from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import tf
 
 class Telepresence():
     ## global variables:
@@ -221,28 +222,31 @@ class Telepresence():
         if np.isnan(self.clicked_depth):
             return False # success of service call
 
-        # quaternions to yaw
-	qx=self.odom.pose.pose.orientation.x
-	qy=self.odom.pose.pose.orientation.y
-	qz=self.odom.pose.pose.orientation.z
-	qw=self.odom.pose.pose.orientation.w
-	siny_cosp = 2 * (qw * qz + qx * qy)
-	cosy_sinp = 1 - 2 * (qy * qy + qz * qz)
-	yaw = math.atan2(siny_cosp, cosy_sinp)
+        quaternion = (
+        self.odom.pose.pose.orientation.x,
+        self.odom.pose.pose.orientation.y,
+        self.odom.pose.pose.orientation.z,
+        self.odom.pose.pose.orientation.w)
+        euler = tf.transformations.euler_from_quaternion(quaternion)
+        yaw = euler[2]
 
         # self.goal is of type geometry_msgs/PoseStamped
         self.goal.header.stamp = rospy.Time.now()
-
-        assert(self.odom.header.frame_id and self.odom.child_frame_id)
         self.goal.header.frame_id = self.odom.header.frame_id
 
         self.goal.pose.position.x = self.odom.pose.pose.position.x + math.cos(yaw) * self.clicked_depth
         self.goal.pose.position.y = self.odom.pose.pose.position.y + math.sin(yaw) * self.clicked_depth
-        #  self.goal.pose.position.z = ...
-        #TODO
-        # itt minden default 0, a quaternion nem lehet viszont nulla
-        # that's illegal
-        self.goal.pose.orientation.w = 1 # hasraütés szerűen
+        self.goal.pose.position.z = 0
+
+        dx = self.goal.pose.position.x - self.odom.pose.pose.position.x
+        dy = self.goal.pose.position.y - self.odom.pose.pose.position.y
+        yaw = math.atan2(dy, dx)
+
+        quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
+        self.goal.pose.orientation.x = quaternion[0]
+        self.goal.pose.orientation.y = quaternion[1]
+        self.goal.pose.orientation.z = quaternion[2]
+        self.goal.pose.orientation.w = quaternion[3]
 
         return True
 
@@ -264,7 +268,8 @@ class Telepresence():
         res = ClickedPointResponse()
         res.success = self.clickedTo3D()
 
-        self.goalPub.publish(self.goal)
+        if res.success:
+            self.goalPub.publish(self.goal)
 
         return res
     
