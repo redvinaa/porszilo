@@ -17,12 +17,20 @@
 
   <body>
 		<div class="jumbotron jumbotron-fluid">
-			<div class="container">
+			<div class="container text-center">
 				<h1 class="display-4">Telepresence control</h1>
-				<img id="image" src="http://localhost:8080/stream?topic=/telepresence/image"
-						width="700" height="500" onload="cbClientResized()" onclick="showCoords(event)"/>
+				<img id="image" class="img-fluid" src="http://localhost:8080/stream?topic=/telepresence/image"
+						onload="cbClientResized()" onclick="showCoords(event)"/>
+
+				<div class="btn-group btn-group-lg d-flex" role="group" aria-label="Basic example">
+				  <button type="button btn-large" class="btn btn-primary">Left</button>
+				  <button type="button btn-large" class="btn btn-primary">Right</button>
+				</div>
 			</div>
 		</div>
+
+
+
 		<script>
 				var ros = new ROSLIB.Ros({
 					url: 'ws://localhost:9090'
@@ -77,22 +85,6 @@
 				var image = document.getElementById("image")
 				
 				function cbClientResized() {
-					var w = document.documentElement.clientWidth;
-					var h = document.documentElement.clientHeight;
-				
-					var img_to_window_size = 0.8;
-					var img_h_to_w = 3/4;
-					var height_offset = h * 0.2;
-
-					if (w * img_to_window_size * img_h_to_w > (h - height_offset)) {
-						image.height = h * img_to_window_size;
-						image.width = image.height / img_h_to_w;
-					}
-					else {
-						image.width = w * img_to_window_size;
-						image.height = image.width * img_h_to_w;
-					}
-				
 					var canvasSize = new ROSLIB.Message({
 						width: image.width,
 						height: image.height
