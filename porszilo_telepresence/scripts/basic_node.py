@@ -164,6 +164,9 @@ class Telepresence():
 	final2[:, :, 1] = output2
 	final2[:, :, 2] = cam_gray
 
+	
+	#cv2.imshow("ablak", final2/255)
+	#cv2.waitKey(1)
 	self.clickable_pic = final2
 
 
