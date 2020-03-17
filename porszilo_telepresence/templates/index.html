@@ -22,9 +22,11 @@
 				<img id="image" class="img-fluid" src="http://localhost:8080/stream?topic=/telepresence/image"
 						onload="cbClientResized()" onclick="showCoords(event)"/>
 
-				<div class="btn-group btn-group-lg d-flex" role="group" aria-label="Basic example">
-				  <button type="button btn-large" class="btn btn-primary">Left</button>
-				  <button type="button btn-large" class="btn btn-primary">Right</button>
+				<div class="card">
+				<div class="card-body btn-group btn-group-lg d-flex" role="group" aria-label="Basic example">
+				  <button id="btn-left"  type="button btn-large" class="btn btn-primary">Left</button>
+				  <button id="btn-right" type="button btn-large" class="btn btn-primary">Right</button>
+				</div>
 				</div>
 			</div>
 		</div>
@@ -32,6 +34,7 @@
 
 
 		<script>
+				// connect to ROS
 				var ros = new ROSLIB.Ros({
 					url: 'ws://localhost:9090'
 				});
@@ -48,13 +51,9 @@
 				ros.on('close', function() {
 				  console.log('Connection to websocket server closed.');
 				});
-				
-				var pubCanvasSize = new ROSLIB.Topic({
-					ros: ros,
-					name: "/telepresence/canvas_size",
-					messageType: 'porszilo_telepresence/CanvasSize'
-				})
-				
+
+
+				// click service
 				var clickedPointSrv = new ROSLIB.Service({
 					ros: ros,
 					name: '/telepresence/clicked_point',
@@ -82,7 +81,15 @@
 					})
 				}
 				
+
+				// send new image size over ROS
 				var image = document.getElementById("image")
+				
+				var pubCanvasSize = new ROSLIB.Topic({
+					ros: ros,
+					name: "/telepresence/canvas_size",
+					messageType: "porszilo_telepresence/CanvasSize"
+				})
 				
 				function cbClientResized() {
 					var canvasSize = new ROSLIB.Message({
@@ -93,6 +100,42 @@
 				}
 				
 				window.addEventListener("resize", cbClientResized);
+
+
+				// manage buttons
+				var pubTurnButtons = new ROSLIB.Topic({
+					ros: ros,
+					name: "/telepresence/turn_buttons",
+					messageType: "std_msgs/String"
+				})
+
+				var btn_left       = document.getElementById("btn-left");
+				var btn_right      = document.getElementById("btn-right");
+				var btn_color_orig = btn_left.style.background;
+				var btn_color_down = "white"
+				var btn_msg        = new ROSLIB.Message()
+
+				btn_left.onmousedown = () => {
+					btn_msg.data = "btn-left-md"
+					pubTurnButtons.publish(btn_msg)
+					btn_left.style.background = btn_color_down;
+				}
+				btn_left.onmouseup = () => {
+					btn_msg.data = "btn-left-mu"
+					pubTurnButtons.publish(btn_msg)
+					btn_left.style.background = btn_color_orig;
+				}
+
+				btn_right.onmousedown = () => {
+					btn_msg.data = "btn-right-md"
+					pubTurnButtons.publish(btn_msg)
+					btn_right.style.background = btn_color_down;
+				}
+				btn_right.onmouseup = () => {
+					btn_msg.data = "btn-right-mu"
+					pubTurnButtons.publish(btn_msg)
+					btn_right.style.background = btn_color_orig;
+				}
 		</script>
   </body>
 </html>

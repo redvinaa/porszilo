@@ -3,9 +3,10 @@
 
 import sys
 import rospy
-from geometry_msgs.msg         import PoseStamped
+from geometry_msgs.msg         import PoseStamped, Twist
 from porszilo_telepresence.srv import ClickedPoint, ClickedPointResponse
 from porszilo_telepresence.msg import CanvasSize
+from std_msgs.msg              import String
 from sensor_msgs.msg           import Image
 from nav_msgs.msg              import OccupancyGrid, Odometry
 import cv2
@@ -41,6 +42,30 @@ class Telepresence():
     def cbCanvasSize(self, data):
         self.canvas['x'] = data.width
         self.canvas['y'] = data.height
+
+    def cbTurnButtons(self, data):
+        # btn-left-md
+        # btn-left-mu
+        # btn-right-md
+        # btn-right-mu
+
+        ex = rospy.ROSInternalException("invalid data received on '/telepresence/turn_buttons'")
+        if "left" in data.data:
+            if "md" in data.data:
+                self.btn_left = "md"
+            elif "mu" in data.data:
+                self.btn_left = "mu"
+            else:
+                raise ex
+        elif "right" in data.data:
+            if "md" in data.data:
+                self.btn_right = "md"
+            elif "mu" in data.data:
+                self.btn_right = "mu"
+            else:
+                raise ex
+        else:
+                raise ex
     
     
     ## loop
@@ -58,7 +83,15 @@ class Telepresence():
             self.clickable_pic = self.cv_color
 
         self.imagePub.publish(CvBridge().cv2_to_imgmsg(self.clickable_pic, encoding="bgr8"))
-        
+
+        if self.btn_left == "md":
+            self.rot_msg.angular.z = self.max_rot_vel
+        elif self.btn_right == "md":
+            self.rot_msg.angular.z = -self.max_rot_vel
+        else:
+            self.rot_msg.angular.z = 0
+        self.pubTurnButtons.publish(self.rot_msg)
+
     
     def getClickablePic(self):
         # calculate 2D pic with the clickable areas marked
@@ -242,6 +275,11 @@ class Telepresence():
         freq              = rospy.get_param("frequency", 10) # default 10 Hz
 	self.view_angle_v = rospy.get_param("view_angle_v", 50)
 	self.view_angle_h = rospy.get_param("view_angle_h", 76)
+        self.max_rot_vel  = rospy.get_param("max_rot_vel", 0.5)
+
+        self.btn_left  = ''
+        self.btn_right = ''
+        self.rot_msg   = Twist()
     
         rospy.loginfo('Waiting for messages to arrive...')
         try:
@@ -268,10 +306,12 @@ class Telepresence():
         rospy.Subscriber("/move_base/global_costmap/costmap", OccupancyGrid, self.cbGrid)
         rospy.Subscriber("/odometry/filtered", Odometry, self.cbOdom)
         rospy.Subscriber("/telepresence/canvas_size", CanvasSize, self.cbCanvasSize)
+        rospy.Subscriber("/telepresence/turn_buttons", String, self.cbTurnButtons)
     
         rospy.loginfo('All messages have arrived at least once, starting publishers')
-        self.goalPub  = rospy.Publisher("/porszilo/move_base/goal", PoseStamped, queue_size=5)
-        self.imagePub = rospy.Publisher("/telepresence/image", Image, queue_size=5)
+        self.goalPub        = rospy.Publisher("/porszilo/move_base/goal", PoseStamped, queue_size=5)
+        self.imagePub       = rospy.Publisher("/telepresence/image", Image, queue_size=5)
+        self.pubTurnButtons = rospy.Publisher("/cmd_vel", Twist, queue_size=5)
 
         # think of this as a remote function call, called by the  JS code in the browser
         self.srv_clicked_point = rospy.Service("/telepresence/clicked_point", ClickedPoint, self.cbClickedPoint)
