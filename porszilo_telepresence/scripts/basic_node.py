@@ -187,31 +187,21 @@ class Telepresence():
 	pts2 = np.float32([[0, 0], [output_cols, 0], [0, output_rows], [output_cols, output_rows]])
 	M_persp = cv2.getPerspectiveTransform(pts1, pts2)
 	output = cv2.warpPerspective(map_rot, M_persp, (output_cols, output_rows))
-	output = output
 
 	output2 = np.array([cam_gray], dtype=int)
 	output2[0, cam_rows - output_rows - 1:-1, :] = output
-	output2 = np.where(output2 < 80, cam_gray, output2)
+	output2 = np.where(output2 < 20, cam_gray, output2)
 
-	final2 = np.zeros((cam_rows, cam_cols, 3))
-	final2[:, :, 0] = cam_gray
-	final2[:, :, 1] = output2
-	final2[:, :, 2] = cam_gray
+        cam_copy = cam.copy()
 
-	
-	#cv2.imshow("ablak", final2/255)
-	#cv2.waitKey(1)
-	self.clickable_pic = final2
+	cam_copy[:, :, 1] = np.where(output2 < 80, cam[:, :, 1], output2)
+
+	self.clickable_pic = cam_copy
 
 
     def clickedTo3D(self):
 
-        # this needs to return bool: success of click service call
-        # also, this should fill up the self.goal field
-
-        # the reason some values return nan, is because
-        # the given values are outside of the field-of.view
-        # of the rgbd camera (usually too close or too far from it)
+        # this returns bool: success of click service call
 
         self.clicked_depth = self.cv_depth[self.point_y, self.point_x]
 

@@ -35,7 +35,6 @@ Lásd: `$(rospack find porszilo_telepresence)/example_screen_2.png`
 
 
 Szóval ezeket kéne még elintézni: 
-	- a kamera képe legyen színes, ahova lehet kattintani az pedig legyen valami adott szín (pl. piros, nyilván átlátszó kicsit), ezt utána el lehet mosni (ha anélkül csúnya)
-	- most úgy van beállítva a `goal` orientációja, hogy a végén mindig egyenesen néz a robot, ezzel azt lehetne csinálni, hogy megnézzük hogy a mostani pozícióhoz képest hol van a cél és légvonalban összekötjük a két pontot. Amerre néz ez a vektor, az legyen a végső orientáció (ha valakinek van jobb ötlete, mondja)
 	- jelezni kéne a képen a pontot ami a cél éppen
-	- ha valahova kattintottunk, a program jelenleg megnézi hogy a depth képen van-e ott szám, ha igen akkor oda megy. Ez helyett nyilván azt kéne ellenőrizni hogy a `grid`-en szabad-e a hely
+	- ha valahova kattintottunk, a program jelenleg megnézi hogy a depth képen van-e ott szám,
+		ha igen akkor oda megy. Ez helyett nyilván azt kéne ellenőrizni hogy a `grid`-en szabad-e a hely
