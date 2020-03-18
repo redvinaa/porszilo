@@ -194,43 +194,59 @@ class Telepresence():
 
         cam_copy = cam.copy()
 
-	cam_copy[:, :, 1] = np.where(output2 < 80, cam[:, :, 1], output2)
+	cam_copy[:, :, 1] = np.where(output2 < 180, cam[:, :, 1], output2)
 
 	self.clickable_pic = cam_copy
+
+	if self.drawGoal:# <- bool
+		self.placeMarker()
+
+    def placeMarker(self):
+	pass
 
 
     def clickedTo3D(self):
 
         # this returns bool: success of click service call
 
-        self.clicked_depth = self.cv_depth[self.point_y, self.point_x]
+        if self.point_y <= self.canvas['y']/2:
+            return False
 
+        #TODO
+        height = self.odom.pose.pose.position.z
+        height = 0.15
+        view_angle_v_rad = self.view_angle_v * math.pi / 180
+        view_angle_h_rad = self.view_angle_h * math.pi / 180
 
-        rospy.loginfo("----------------")
-        rospy.loginfo("Clicked depth: {}".format(self.clicked_depth))
+        tan_ang_v = (self.point_y - self.canvas['y']/2) * math.tan(view_angle_v_rad/2) / (self.canvas['y']/2)
+        dist = height / tan_ang_v
+        yaw = - (self.point_x - self.canvas['x']/2) * math.tan(view_angle_h_rad/2) / (self.canvas['x']/2)
 
-        if np.isnan(self.clicked_depth):
-            return False # success of service call
+        rospy.loginfo("tan_ang_v = {}".format(tan_ang_v))
+        rospy.loginfo("yaw = {}".format(yaw))
+        rospy.loginfo("dist = {}".format(dist))
 
-        quaternion = (
-        self.odom.pose.pose.orientation.x,
-        self.odom.pose.pose.orientation.y,
-        self.odom.pose.pose.orientation.z,
-        self.odom.pose.pose.orientation.w)
-        euler = tf.transformations.euler_from_quaternion(quaternion)
-        yaw = euler[2]
+	pose_x = self.odom.pose.pose.position.x + math.cos(yaw) * dist
+	pose_y = self.odom.pose.pose.position.y + math.sin(yaw) * dist
+
+	idx = int((pose_y-self.grid.info.origin.position.y) / self.grid.info.resolution * self.grid.info.width + (pose_x-self.grid.info.origin.position.x) / self.grid.info.resolution)
+	data = self.grid.data[idx]
+
+	print("origin = ({})".format(self.grid.info.origin.position))
+	print("idx = {}".format(idx))
+	print("data = {}".format(data))
+
+	if not data == 0:
+		self.drawGoal = False
+		return False
 
         # self.goal is of type geometry_msgs/PoseStamped
         self.goal.header.stamp = rospy.Time.now()
         self.goal.header.frame_id = self.odom.header.frame_id
 
-        self.goal.pose.position.x = self.odom.pose.pose.position.x + math.cos(yaw) * self.clicked_depth
-        self.goal.pose.position.y = self.odom.pose.pose.position.y + math.sin(yaw) * self.clicked_depth
-        self.goal.pose.position.z = 0
-
-        dx = self.goal.pose.position.x - self.odom.pose.pose.position.x
-        dy = self.goal.pose.position.y - self.odom.pose.pose.position.y
-        yaw = math.atan2(dy, dx)
+        self.goal.pose.position.x = pose_x
+        self.goal.pose.position.y = pose_y
+        self.goal.pose.position.z = self.odom.pose.pose.position.z
 
         quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
         self.goal.pose.orientation.x = quaternion[0]
@@ -238,6 +254,7 @@ class Telepresence():
         self.goal.pose.orientation.z = quaternion[2]
         self.goal.pose.orientation.w = quaternion[3]
 
+	self.drawGoal = True
         return True
 
         
@@ -275,6 +292,7 @@ class Telepresence():
 	self.view_angle_h = rospy.get_param("view_angle_h", 76)
         self.max_rot_vel  = rospy.get_param("max_rot_vel", 0.5)
 
+	self.drawGoal = False
         self.btn_left  = ''
         self.btn_right = ''
         self.rot_msg   = Twist()
