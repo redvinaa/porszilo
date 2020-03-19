@@ -16,6 +16,7 @@ import math
 import matplotlib.pyplot as plt
 import tf
 
+
 class Telepresence():
     ## global variables:
         # color
@@ -98,8 +99,8 @@ class Telepresence():
         # calculate 2D pic with the clickable areas marked
 	
 	# az általam rajzolt térképen 1 pixel 1 cm a valóságban
-	pos_y = int(round(self.odom.pose.pose.position.y/self.grid.info.resolution + self.grid.info.height/2)) # pozíciónk a térképen pixelben
-	pos_x = int(round(self.odom.pose.pose.position.x/self.grid.info.resolution + self.grid.info.width/2))
+	self.pos_y = int(round(self.odom.pose.pose.position.y/self.grid.info.resolution + self.grid.info.height/2)) # pozíciónk a térképen pixelben
+	self.pos_x = int(round(self.odom.pose.pose.position.x/self.grid.info.resolution + self.grid.info.width/2))
 	h = int(round(self.odom.pose.pose.position.z/self.grid.info.resolution))+5 # a kamer optikai tengelyének magassága a földtől pixel egységgé alakítva
 	view_angle_v = self.view_angle_v  # kamera vertikális látószöge fokban
 	view_angle_h = self.view_angle_h   # kamera horizontális látószöge fokban
@@ -119,7 +120,7 @@ class Telepresence():
 	orig_map = np.where(orig_map==-1, 0, 255)
 	
 	orig_map = np.reshape(orig_map,(self.grid.info.height, self.grid.info.width)).astype('uint8')
-	orig_map = cv2.flip(orig_map, 0)
+	orig_map = cv2.flip(orig_map, 0)	
 
 	cam = self.cv_color
 
@@ -133,22 +134,24 @@ class Telepresence():
 
 	map_diag = int(round(1.2 * (math.sqrt(math.pow(map_cols, 2) + math.pow(map_rows, 2)))))  # egy nagy térkép amibe beletéve a kicsit szabadon el tudjuk forgatni
 	big_map = np.zeros((map_diag, map_diag), 'uint8')
+	
+	self.shift_cols = int(round((map_diag - map_cols) / 2))  # beletesszük a közepére a térképet
+	self.shift_rows = int(round((map_diag - map_rows) / 2))
+	big_map[self.shift_rows:(map_rows + self.shift_rows), self.shift_cols:(map_cols + self.shift_cols)] = orig_map
+	
 
-	shift_cols = int(round((map_diag - map_cols) / 2))  # beletesszük a közepére a térképet
-	shift_rows = int(round((map_diag - map_rows) / 2))
-	big_map[shift_rows:(map_rows + shift_rows), shift_cols:(map_cols + shift_cols)] = orig_map
-
-	pos_y_big = shift_rows + pos_y  # átszámítva a koordinátkat a nagy térképre
-	pos_x_big = shift_cols + pos_x
+	pos_y_big = self.shift_rows + self.pos_y  # átszámítva a koordinátkat a nagy térképre
+	pos_x_big = self.shift_cols + self.pos_x
 
 	M_rot = cv2.getRotationMatrix2D((map_diag / 2, map_diag / 2), deg, 1)  # elforgatjuk hogy függőlegesen fölfelé legyen a robot nézési iránya
 	map_rot = cv2.warpAffine(big_map, M_rot, (map_diag, map_diag))
 
 	# Hol vagyunk a forgatás után, a nagy térképen?
-	big_map_half = int(round(map_diag / 2))
-	rad = deg * math.pi / 180
-	pos_x_rot = int((pos_x_big - big_map_half) * math.cos(rad) + (pos_y_big - big_map_half) * math.sin(rad) + big_map_half)
-	pos_y_rot = int(-(pos_x_big - big_map_half) * math.sin(rad) + (pos_y_big - big_map_half) * math.cos(rad) + big_map_half)
+	self.big_map_half = int(round(map_diag / 2))
+	self.rad = deg * math.pi / 180
+	pos_x_rot = int((pos_x_big - self.big_map_half) * math.cos(self.rad) + (pos_y_big - self.big_map_half) * math.sin(self.rad) + self.big_map_half)
+	pos_y_rot = int(-(pos_x_big - self.big_map_half) * math.sin(self.rad) + (pos_y_big - self.big_map_half) * math.cos(self.rad) + self.big_map_half)
+
 
 	# keressük meg a perspektívikusan torzítandó képrészlet 4 sarkát
 	# ez itt puszta koordinátageometria kiegyszerűsítve, átláthatatlanul
@@ -178,19 +181,21 @@ class Telepresence():
 
 	# mennyire kell összenyomni a képet
 	beta = math.atan((pos_y_rot - y4) / h) * 180 / math.pi - 90 + view_angle_v / 2
-	ratio = beta / view_angle_v
+	self.ratio = beta / view_angle_v
 
-	output_rows = int(round(cam_rows * ratio))
+	output_rows = int(round(cam_rows * self.ratio))
 	output_cols = int(round(cam_cols))
 
 	pts1 = np.float32([[p2x, p2y], [p3x, p3y], [p1x, p1y], [p4x, p4y]])
 	pts2 = np.float32([[0, 0], [output_cols, 0], [0, output_rows], [output_cols, output_rows]])
-	M_persp = cv2.getPerspectiveTransform(pts1, pts2)
-	output = cv2.warpPerspective(map_rot, M_persp, (output_cols, output_rows))
+	self.M_persp = cv2.getPerspectiveTransform(pts1, pts2)
+	output = cv2.warpPerspective(map_rot, self.M_persp, (output_cols, output_rows))
+	output = np.where(output < 100, 0, 255)
 
 	output2 = np.array([cam_gray], dtype=int)
 	output2[0, cam_rows - output_rows - 1:-1, :] = output
 	output2 = np.where(output2 < 20, cam_gray, output2)
+
 
         cam_copy = cam.copy()
 
@@ -198,11 +203,51 @@ class Telepresence():
 
 	self.clickable_pic = cam_copy
 
+	#self.placeMarker()
+
 	if self.drawGoal:# <- bool
-		self.placeMarker()
+		placeMarker()
 
     def placeMarker(self):
-	pass
+
+	marker = cv2.imread('/home/adam/catkin_ws/src/porszilo/porszilo_telepresence/marker.png')
+
+	
+	#goal = np.array([[[self.goal.pose.position.x, self.goal.pose.position.y]]])
+
+	goal_y = int(self.goal.pose.position.y/self.grid.info.resolution + self.grid.info.height/2)
+	goal_x = int(self.goal.pose.position.x/self.grid.info.resolution + self.grid.info.width/2)
+
+	goal_y_big = self.shift_rows + goal_y  
+	goal_x_big = self.shift_cols + goal_x
+
+	goal_y_rot = int(-(goal_x_big - self.big_map_half) * math.sin(self.rad) + (goal_y_big - self.big_map_half) * math.cos(self.rad) + self.big_map_half)
+	goal_x_rot = int((goal_x_big - self.big_map_half) * math.cos(self.rad) + (goal_y_big - 	self.big_map_half) * math.sin(self.rad) + self.big_map_half)
+
+	
+	goal = np.array([[[goal_x_rot, goal_y_rot]]], dtype=np.float32)
+	goal = cv2.perspectiveTransform(goal, self.M_persp);
+	print("marker helye: ", goal[0][0])
+	goal[0][0][1] = goal[0][0][1] + (1 - self.ratio) * self.clickable_pic.shape[0]
+
+	dist = (math.pow((goal_y  - self.pos_y), 2) + math.pow((goal_x - self.pos_y), 2)) * 0.001
+
+	scale = (self.clickable_pic.shape[0] / marker.shape[0]) * 0.1 #dist * 0.0007
+	new_size_x = int(marker.shape[0] * scale)
+	new_size_y = int(marker.shape[1] * scale)
+	marker = cv2.resize(marker, (new_size_x, new_size_y))
+	#print(scale, new_size_x, new_size_y)
+
+	place_y = int(abs(goal[0][0][1] - new_size_y * 0.87))
+	place_x = int(abs( goal[0][0][0] - new_size_x / 2))
+	#print(place_x, place_y)
+	
+
+	print("a kepek merete:", self.clickable_pic[place_x : place_x + new_size_x, place_y  : place_y + new_size_y, :].shape, marker.shape)
+	self.clickable_pic[place_x : place_x + new_size_x, place_y  : place_y + new_size_y, :] = cv2.bitwise_and(self.clickable_pic[place_x : place_x + new_size_x, place_y  : place_y + new_size_y, :], marker)
+
+	cv2.imshow("h",self.clickable_pic)
+	cv2.waitKey(1)
 
 
     def clickedTo3D(self):
@@ -282,7 +327,7 @@ class Telepresence():
     
     def main(self):
         rospy.init_node('telepresence')
-    
+
         self.goal = PoseStamped()
         self.canvas = {}
         self.canvas['x']  = rospy.get_param("canvas_width", 700)
