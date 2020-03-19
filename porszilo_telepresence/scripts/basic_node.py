@@ -105,13 +105,14 @@ class Telepresence():
 	view_angle_v = self.view_angle_v  # kamera vertikális látószöge fokban
 	view_angle_h = self.view_angle_h   # kamera horizontális látószöge fokban
 
-	qx=self.odom.pose.pose.orientation.x
-	qy=self.odom.pose.pose.orientation.y
-	qz=self.odom.pose.pose.orientation.z
-	qw=self.odom.pose.pose.orientation.w
-	siny_cosp = 2 * (qw * qz + qx * qy)
-	cosy_sinp = 1 - 2 * (qy * qy + qz * qz)
-	yaw = math.atan2(siny_cosp, cosy_sinp)
+        q = (\
+	    self.odom.pose.pose.orientation.x,\
+	    self.odom.pose.pose.orientation.y,\
+	    self.odom.pose.pose.orientation.z,\
+	    self.odom.pose.pose.orientation.w)
+        euler = tf.transformations.euler_from_quaternion(q)
+
+	yaw = euler[2]
 
 	deg = round(90 - yaw * 180 / math.pi)
         # hány fokkal kell elforgatnunk a térépet hogy a robot nézési iránya függőlegesen legyen
@@ -254,36 +255,39 @@ class Telepresence():
 
         # this returns bool: success of click service call
 
-        if self.point_y <= self.canvas['y']/2:
+        if self.point_pix_y <= self.canvas['y']/2:
+            self.drawGoal = False
             return False
 
         #TODO
         height = self.odom.pose.pose.position.z
-        height = 0.15
+        height = 0.19 * 0.5
         view_angle_v_rad = self.view_angle_v * math.pi / 180
         view_angle_h_rad = self.view_angle_h * math.pi / 180
 
-        tan_ang_v = (self.point_y - self.canvas['y']/2) * math.tan(view_angle_v_rad/2) / (self.canvas['y']/2)
+        tan_ang_v = (self.point_pix_y - self.canvas['y']/2) * \
+                math.tan(view_angle_v_rad/2) / (self.canvas['y']/2)
+        tan_ang_h = - (self.point_pix_x - self.canvas['x']/2) * \
+                math.tan(view_angle_h_rad/2) / (self.canvas['x']/2)
         dist = height / tan_ang_v
-        yaw = - (self.point_x - self.canvas['x']/2) * math.tan(view_angle_h_rad/2) / (self.canvas['x']/2)
+        ang_h = math.atan(tan_ang_h)
 
-        rospy.loginfo("tan_ang_v = {}".format(tan_ang_v))
-        rospy.loginfo("yaw = {}".format(yaw))
-        rospy.loginfo("dist = {}".format(dist))
+        if dist > 10:
+            self.drawGoal = False
+            return False
 
-	pose_x = self.odom.pose.pose.position.x + math.cos(yaw) * dist
-	pose_y = self.odom.pose.pose.position.y + math.sin(yaw) * dist
+        q = (\
+	    self.odom.pose.pose.orientation.x,\
+	    self.odom.pose.pose.orientation.y,\
+	    self.odom.pose.pose.orientation.z,\
+	    self.odom.pose.pose.orientation.w)
+        euler = tf.transformations.euler_from_quaternion(q)
 
-	idx = int((pose_y-self.grid.info.origin.position.y) / self.grid.info.resolution * self.grid.info.width + (pose_x-self.grid.info.origin.position.x) / self.grid.info.resolution)
-	data = self.grid.data[idx]
+	yaw = euler[2]
+        ang_h += yaw
 
-	print("origin = ({})".format(self.grid.info.origin.position))
-	print("idx = {}".format(idx))
-	print("data = {}".format(data))
-
-	if not data == 0:
-		self.drawGoal = False
-		return False
+	pose_x = self.odom.pose.pose.position.x + math.cos(ang_h) * dist
+	pose_y = self.odom.pose.pose.position.y + math.sin(ang_h) * dist
 
         # self.goal is of type geometry_msgs/PoseStamped
         self.goal.header.stamp = rospy.Time.now()
@@ -293,7 +297,7 @@ class Telepresence():
         self.goal.pose.position.y = pose_y
         self.goal.pose.position.z = self.odom.pose.pose.position.z
 
-        quaternion = tf.transformations.quaternion_from_euler(0, 0, yaw)
+        quaternion = tf.transformations.quaternion_from_euler(0, 0, ang_h)
         self.goal.pose.orientation.x = quaternion[0]
         self.goal.pose.orientation.y = quaternion[1]
         self.goal.pose.orientation.z = quaternion[2]
@@ -311,6 +315,8 @@ class Telepresence():
 
         self.point_x = int(req.x * self.cv_depth.shape[1] / self.canvas['x']) # width
         self.point_y = int(req.y * self.cv_depth.shape[0] / self.canvas['y']) # height
+        self.point_pix_x = req.x
+        self.point_pix_y = req.y
 
         if self.point_x > self.cv_depth.shape[1]:
             self.point_x = self.cv_depth.shape[1] - 1
