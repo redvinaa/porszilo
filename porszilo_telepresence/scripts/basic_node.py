@@ -102,7 +102,7 @@ class Telepresence():
 	
 	self.pos_y = int(round(self.odom.pose.pose.position.y/self.grid.info.resolution + self.grid.info.height/2)) # pozíciónk a térképen pixelben
 	self.pos_x = int(round(self.odom.pose.pose.position.x/self.grid.info.resolution + self.grid.info.width/2))
-	h = int(round(self.odom.pose.pose.position.z/self.grid.info.resolution))+5 # a kamer optikai tengelyének magassága a földtől pixel egységgé alakítva
+	h = self.odom.pose.pose.position.z/self.grid.info.resolution + 2.1
 	view_angle_v = self.view_angle_v  # kamera vertikális látószöge fokban
 	view_angle_h = self.view_angle_h   # kamera horizontális látószöge fokban
 	
@@ -115,7 +115,7 @@ class Telepresence():
 
 	yaw = euler[2]
 
-	deg = round(90 - yaw * 180 / math.pi)
+	deg = int(round((90 - yaw * 180 / math.pi) - 0.5))
         # hány fokkal kell elforgatnunk a térépet hogy a robot nézési iránya függőlegesen legyen
 
         orig_map = np.array(self.grid.data)  # beolvassuk a térképet és a látott képet
@@ -216,7 +216,7 @@ class Telepresence():
 	#goal = np.array([[[self.goal.pose.position.x, self.goal.pose.position.y]]])
 
 	goal_y = int(-self.goal.pose.position.y/self.grid.info.resolution + self.grid.info.height/2)
-	goal_x = int(self.goal.pose.position.x/self.grid.info.resolution + self.grid.info.width/2)
+	goal_x = int((self.goal.pose.position.x)/self.grid.info.resolution + self.grid.info.width/2)
 
 	goal_y_big = self.shift_rows + goal_y  
 	goal_x_big = self.shift_cols + goal_x
@@ -224,7 +224,7 @@ class Telepresence():
 	goal_y_rot = int(-(goal_x_big - self.big_map_half) * math.sin(self.rad) + (goal_y_big - self.big_map_half) * math.cos(self.rad) + self.big_map_half)
 	goal_x_rot = int((goal_x_big - self.big_map_half) * math.cos(self.rad) + (goal_y_big - 	self.big_map_half) * math.sin(self.rad) + self.big_map_half)
 	
-	print(goal_x_rot, goal_y_rot)
+	#print(goal_x_rot, goal_y_rot)
 
 	
 	goal = np.array([[[goal_x_rot, goal_y_rot]]], dtype=np.float32)
@@ -232,8 +232,9 @@ class Telepresence():
 	goal[0][0][0] = round(goal[0][0][0])
 	goal[0][0][1] = round(goal[0][0][1] + (1 - self.ratio) * self.clickable_pic.shape[0])	
 	
-	print(self.clickable_pic.shape)
+	#print(self.clickable_pic.shape)
 	print("marker helye: ", goal[0][0])
+	print("kattintasbol szamolt hely: ", self.goal.pose.position.x, self.goal.pose.position.y)
 
 	#dist = (math.pow((goal_y  - self.pos_y), 2) + math.pow((goal_x - self.pos_y), 2)) * 0.001
 
@@ -245,12 +246,13 @@ class Telepresence():
 
 	place_y = int(abs(goal[0][0][1] - new_size_y * 0.87))
 	place_x = int(abs(goal[0][0][0] - new_size_x / 2))
-	print(place_x, place_y)
+	#print(place_x, place_y)
 	
 
-	print("a kepek merete:", self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :].shape, self.marker.shape)
+	#print("a kepek merete:", self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :].shape, self.marker.shape)
 
 	self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :] = cv2.bitwise_and(self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :], self.marker)
+	 
 
 
     def clickedTo3D(self):
