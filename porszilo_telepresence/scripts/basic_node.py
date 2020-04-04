@@ -248,11 +248,19 @@ class Telepresence():
 	place_x = int(abs(goal[0][0][0] - new_size_x / 2))
 	#print(place_x, place_y)
 	
+#--------------------------------------------------------------------------------------------#
+	diff_y = self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :].shape[0]
 
-	#print("a kepek merete:", self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :].shape, self.marker.shape)
+	diff_x = self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :].shape[1]
 
-	self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :] = cv2.bitwise_and(self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :], self.marker)
-	 
+	
+	if  diff_x > self.marker.shape[1]*0.5:
+		if diff_y > self.marker.shape[0]*0.87:
+			marker2 =self.marker[0:diff_y, 0:diff_x, :]
+			self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :] = cv2.bitwise_and(self.clickable_pic[place_y : place_y + new_size_y, place_x  : place_x + new_size_x, :], marker2)
+
+	##Ide else-be akár mehetne valami hibaüzi a böngészős felületre, hogy nem a képen van a marker
+#-----------------------------------------------------------------------------------------#	 
 
 
     def clickedTo3D(self):
