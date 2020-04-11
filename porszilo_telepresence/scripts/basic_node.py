@@ -7,6 +7,7 @@ from geometry_msgs.msg         import PoseStamped, Twist
 from porszilo_telepresence.srv import ClickedPoint, ClickedPointResponse
 from porszilo_telepresence.msg import CanvasSize
 from std_msgs.msg              import String
+from actionlib_msgs.msg        import GoalStatusArray
 from sensor_msgs.msg           import Image
 from nav_msgs.msg              import OccupancyGrid, Odometry
 import cv2
@@ -46,6 +47,14 @@ class Telepresence():
     def cbCanvasSize(self, data):
         self.canvas['x'] = data.width
         self.canvas['y'] = data.height
+
+    def cbGoalStatus(self, data):
+        self.move_base_working = False
+        try:
+            if data.status_list[-1].status != 3:
+                self.move_base_working = True
+        except:
+            pass # False
 
     def cbTurnButtons(self, data):
         # btn-left-md
@@ -193,22 +202,20 @@ class Telepresence():
 	pts2 = np.float32([[0, 0], [output_cols, 0], [0, output_rows], [output_cols, output_rows]])
 	self.M_persp = cv2.getPerspectiveTransform(pts1, pts2)
 	output = cv2.warpPerspective(map_rot, self.M_persp, (output_cols, output_rows))
-	output = np.where(output < 100, 0, 255)
+	output = np.where(output < 80, 0, 255)
 
 	output2 = np.array([cam_gray], dtype=int)
 	output2[0, cam_rows - output_rows - 1:-1, :] = output
-	output2 = np.where(output2 < 20, cam_gray, output2)
+	output2 = np.where(output2 < 80, cam_gray, output2)
 
 
         cam_copy = cam.copy()
 
-	cam_copy[:, :, 1] = np.where(output2 < 180, cam[:, :, 1], output2)
+	cam_copy[:, :, 1] = np.where(output2 < 80, cam[:, :, 1], output2)
 
 	self.clickable_pic = cam_copy
 
-	#self.placeMarker()
-
-	if self.drawGoal:# <- bool
+	if self.drawGoal and self.move_base_working:# <- bool
 		self.placeMarker()
 
     def placeMarker(self):
@@ -233,8 +240,8 @@ class Telepresence():
 	goal[0][0][1] = round(goal[0][0][1] + (1 - self.ratio) * self.clickable_pic.shape[0])	
 	
 	#print(self.clickable_pic.shape)
-	print("marker helye: ", goal[0][0])
-	print("kattintasbol szamolt hely: ", self.goal.pose.position.x, self.goal.pose.position.y)
+	#  print("marker helye: ", goal[0][0])
+	#  print("kattintasbol szamolt hely: ", self.goal.pose.position.x, self.goal.pose.position.y)
 
 	#dist = (math.pow((goal_y  - self.pos_y), 2) + math.pow((goal_x - self.pos_y), 2)) * 0.001
 
@@ -360,13 +367,15 @@ class Telepresence():
 	self.view_angle_v = rospy.get_param("view_angle_v", 50)
 	self.view_angle_h = rospy.get_param("view_angle_h", 76)
         self.max_rot_vel  = rospy.get_param("max_rot_vel", 0.5)
+        self.dynamic_map  = rospy.get_param("dynamic_map", False)
 
-	self.drawGoal = False
-        self.btn_left  = ''
-        self.btn_right = ''
-        self.rot_msg   = Twist()
+	self.drawGoal          = False
+        self.btn_left          = ''
+        self.btn_right         = ''
+        self.rot_msg           = Twist()
+        self.move_base_working = False # move base is making the robot go to the goal (has not arrived)
     
-        rospy.loginfo('Waiting for messages to arrive...')
+        rospy.logwarn('Waiting for messages to arrive...')
         try:
             # elsőre megvárjuk hogy minden legalább egyszer megérkezzen, így minden
             # define-olva lesz és mindenben lesz adat
@@ -388,12 +397,14 @@ class Telepresence():
 
         rospy.Subscriber("/camera/color/image_raw", Image, self.cbColor)
         rospy.Subscriber("/camera/depth/image_raw", Image, self.cbDepth)
-        rospy.Subscriber("/move_base/global_costmap/costmap", OccupancyGrid, self.cbGrid)
         rospy.Subscriber("/odometry/filtered", Odometry, self.cbOdom)
         rospy.Subscriber("/telepresence/canvas_size", CanvasSize, self.cbCanvasSize)
         rospy.Subscriber("/telepresence/turn_buttons", String, self.cbTurnButtons)
+        rospy.Subscriber("/move_base/status", GoalStatusArray, self.cbGoalStatus)
+        if self.dynamic_map:
+            rospy.Subscriber("/move_base/global_costmap/costmap", OccupancyGrid, self.cbGrid)
     
-        rospy.loginfo('All messages have arrived at least once, starting publishers')
+        rospy.logwarn('All messages have arrived at least once, starting publishers')
         self.goalPub        = rospy.Publisher("/porszilo/move_base/goal", PoseStamped, queue_size=5)
         self.imagePub       = rospy.Publisher("/telepresence/image", Image, queue_size=5)
         self.pubTurnButtons = rospy.Publisher("/cmd_vel", Twist, queue_size=5)

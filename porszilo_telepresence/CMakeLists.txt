@@ -38,6 +38,7 @@ catkin_package(
 		nav_msgs
 		roscpp rospy
 		sensor_msgs
+		actionlib_msgs
 		opencv2
 		cv_bridge
 		std_srvs

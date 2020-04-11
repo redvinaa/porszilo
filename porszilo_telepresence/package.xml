@@ -67,6 +67,7 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <depend>std_msgs</depend>
+  <depend>actionlib_msgs</depend>
   <depend>std_srvs</depend>
   <depend>opencv2</depend>
   <depend>cv_bridge</depend>

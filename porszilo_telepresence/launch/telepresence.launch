@@ -8,9 +8,9 @@
 
 	<node name="telepresence" 
 			pkg="porszilo_telepresence" type="basic_node.py" output="screen">
-		<param name="freq"         value="4"/>
-		<param name="view_angle_h" value="76"/>
-		<param name="view_angle_v" value="44"/>
+		<param name="freq"         value="8"/>
+		<param name="view_angle_h" value="80"/>
+		<param name="view_angle_v" value="60"/>
 		<param name="deg"          value="195"/>
 	</node>
 
