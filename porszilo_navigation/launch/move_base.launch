@@ -7,7 +7,8 @@
   
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="log" required="true">
     <remap from="cmd_vel" to="nav_vel" /><!--to="mobile_base_controller/cmd_vel"-->
-		<remap from="map"     to="$(arg move_base_map_topic)"/>
+		<remap from="/map"     to="$(arg move_base_map_topic)"/>
+		<!-- <remap from="/map"     to="$(arg move_base_map_topic)"/> -->
 		<remap from="odom"    to="/odometry/filtered"/>
 		<remap from="/move_base_simple/goal" to="porszilo/move_base/goal"/>
 

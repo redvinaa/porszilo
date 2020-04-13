@@ -1,0 +1,13 @@
+<launch>
+	<include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+	<node name="web_video_server"
+			pkg="web_video_server" type="web_video_server">
+		<param name="port" value="8080"/>
+		<param name="address" value="localhost"/>
+	</node>
+
+	<node name="telepresence" 
+			pkg="porszilo_telepresence_v2" type="telepresence.py" output="screen">
+	</node>
+
+</launch>

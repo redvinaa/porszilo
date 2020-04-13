@@ -9,7 +9,7 @@ from porszilo_telepresence.msg import CanvasSize
 from std_msgs.msg              import String
 from actionlib_msgs.msg        import GoalStatusArray
 from sensor_msgs.msg           import Image
-from nav_msgs.msg              import OccupancyGrid, Odometry
+from nav_msgs.msg              import OccupancyGrid
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
@@ -25,7 +25,7 @@ class Telepresence():
         # color
         # depth
         # grid
-        # odom
+        # tf_pose
         # goal
     
     
@@ -41,9 +41,6 @@ class Telepresence():
     def cbGrid(self, data):
         self.grid = data
     
-    def cbOdom(self, data):
-        self.odom = data
-
     def cbCanvasSize(self, data):
         self.canvas['x'] = data.width
         self.canvas['y'] = data.height
@@ -86,6 +83,11 @@ class Telepresence():
         # 2D pic with the clickable areas marked
         # published to the browser
 
+        try:
+            self.tf_pose = self.listener.lookupTransform('/camera_link', '/map', rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as ex:
+            print(ex)
+
         #  self.getClickablePic() # fills self.clickable_pic, raises excetp on error
         try:
             self.getClickablePic() # fills self.clickable_pic, raises excetp on error
@@ -109,22 +111,26 @@ class Telepresence():
     def getClickablePic(self):
         # calculate 2D pic with the clickable areas marked
 	
-	self.pos_y = int(round(self.odom.pose.pose.position.y/self.grid.info.resolution + self.grid.info.height/2)) # pozíciónk a térképen pixelben
-	self.pos_x = int(round(self.odom.pose.pose.position.x/self.grid.info.resolution + self.grid.info.width/2))
-	h = self.odom.pose.pose.position.z/self.grid.info.resolution + 2.1
+	self.pos_y = int(round(self.tf_pose[0][1]/self.grid.info.resolution + self.grid.info.height/2)) # pozíciónk a térképen pixelben
+	self.pos_x = int(round(self.tf_pose[0][0]/self.grid.info.resolution + self.grid.info.width/2))
+	h = self.tf_pose[0][2]/self.grid.info.resolution + 9.1
+	#  h = self.tf_pose[0][2]/self.grid.info.resolution + 2.1 # TODO
+
+
 	view_angle_v = self.view_angle_v  # kamera vertikális látószöge fokban
 	view_angle_h = self.view_angle_h   # kamera horizontális látószöge fokban
 	
         q = (\
-	    self.odom.pose.pose.orientation.x,\
-	    self.odom.pose.pose.orientation.y,\
-	    self.odom.pose.pose.orientation.z,\
-	    self.odom.pose.pose.orientation.w)
+	    self.tf_pose[1][0],\
+	    self.tf_pose[1][1],\
+	    self.tf_pose[1][2],\
+	    self.tf_pose[1][3])
         euler = tf.transformations.euler_from_quaternion(q)
 
 	yaw = euler[2]
 
 	deg = int(round((90 - yaw * 180 / math.pi) - 0.5))
+	deg = int(round((90 + yaw * 180 / math.pi) - 0.5))
         # hány fokkal kell elforgatnunk a térépet hogy a robot nézési iránya függőlegesen legyen
 
         orig_map = np.array(self.grid.data)  # beolvassuk a térképet és a látott képet
@@ -132,6 +138,7 @@ class Telepresence():
 	
 	orig_map = np.reshape(orig_map,(self.grid.info.height, self.grid.info.width)).astype('uint8')
 	orig_map = cv2.flip(orig_map, 0)	
+
 
 	cam = self.cv_color
 
@@ -191,6 +198,7 @@ class Telepresence():
 
 	#print(p1x, p1y, '  ', p2x, p2y, '  ', p3x, p3y, '  ', p4x, p4y)
 
+
 	# mennyire kell összenyomni a képet
 	beta = math.atan((pos_y_rot - y4) / h) * 180 / math.pi - 90 + view_angle_v / 2
 	self.ratio = beta / view_angle_v
@@ -200,6 +208,8 @@ class Telepresence():
 
 	pts1 = np.float32([[p2x, p2y], [p3x, p3y], [p1x, p1y], [p4x, p4y]])
 	pts2 = np.float32([[0, 0], [output_cols, 0], [0, output_rows], [output_cols, output_rows]])
+
+
 	self.M_persp = cv2.getPerspectiveTransform(pts1, pts2)
 	output = cv2.warpPerspective(map_rot, self.M_persp, (output_cols, output_rows))
 	output = np.where(output < 80, 0, 255)
@@ -279,8 +289,8 @@ class Telepresence():
             return False
 
         #TODO
-        height = self.odom.pose.pose.position.z
-        height = 0.19 * 0.5# <- empirikus
+        height = self.tf_pose[0][2]
+        #  height = self.tf_pose[0][2] * 1.0# <- empirikus
         view_angle_v_rad = self.view_angle_v * math.pi / 180
         view_angle_h_rad = self.view_angle_h * math.pi / 180
 
@@ -296,21 +306,21 @@ class Telepresence():
             return False
 
         q = (\
-	    self.odom.pose.pose.orientation.x,\
-	    self.odom.pose.pose.orientation.y,\
-	    self.odom.pose.pose.orientation.z,\
-	    self.odom.pose.pose.orientation.w)
+	    self.tf_pose[1][0],\
+	    self.tf_pose[1][1],\
+	    self.tf_pose[1][2],\
+	    self.tf_pose[1][3])
         euler = tf.transformations.euler_from_quaternion(q)
 
 	yaw = euler[2]
         ang_h += yaw
 
-	pose_x = self.odom.pose.pose.position.x + math.cos(ang_h) * dist
-	pose_y = self.odom.pose.pose.position.y + math.sin(ang_h) * dist
+	pose_x = self.tf_pose[0][0] + math.cos(ang_h) * dist
+	pose_y = self.tf_pose[0][1] + math.sin(ang_h) * dist
 
         # self.goal is of type geometry_msgs/PoseStamped
         self.goal.header.stamp = rospy.Time.now()
-        self.goal.header.frame_id = self.odom.header.frame_id
+        self.goal.header.frame_id = "map"
 
         self.goal.pose.position.x = pose_x
         self.goal.pose.position.y = pose_y
@@ -369,6 +379,7 @@ class Telepresence():
         self.max_rot_vel  = rospy.get_param("max_rot_vel", 0.5)
         self.dynamic_map  = rospy.get_param("dynamic_map", False)
 
+        self.listener          = tf.TransformListener()
 	self.drawGoal          = False
         self.btn_left          = ''
         self.btn_right         = ''
@@ -382,7 +393,13 @@ class Telepresence():
             self.cbColor(rospy.wait_for_message("/camera/color/image_raw", Image))
             self.cbDepth(rospy.wait_for_message("/camera/depth/image_raw", Image))
             self.cbGrid(rospy.wait_for_message("/move_base/global_costmap/costmap", OccupancyGrid))
-            self.cbOdom(rospy.wait_for_message("/odometry/filtered", Odometry))
+            while True:
+                try:
+                    self.tf_pose = self.listener.lookupTransform('/camera_link', '/map', rospy.Time(0))
+                    break
+                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as ex:
+                    print(ex)
+                    rospy.sleep(0.5)
 
         except rospy.ROSInterruptException:
             rospy.loginfo("Telepresence node is being shut down")
@@ -397,7 +414,6 @@ class Telepresence():
 
         rospy.Subscriber("/camera/color/image_raw", Image, self.cbColor)
         rospy.Subscriber("/camera/depth/image_raw", Image, self.cbDepth)
-        rospy.Subscriber("/odometry/filtered", Odometry, self.cbOdom)
         rospy.Subscriber("/telepresence/canvas_size", CanvasSize, self.cbCanvasSize)
         rospy.Subscriber("/telepresence/turn_buttons", String, self.cbTurnButtons)
         rospy.Subscriber("/move_base/status", GoalStatusArray, self.cbGoalStatus)

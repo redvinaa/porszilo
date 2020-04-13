@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
+	<arg name="hacked_control" default="false"/>
+
     <node pkg="twist_mux" type="twist_mux" name="twist_mux_node" output="screen">
         <rosparam file="$(find ros_twist_mux)/config/twist_mux.yaml" command="load"/>
-        <remap from="cmd_vel_out" to="/mobile_base_controller/cmd_vel"/>
+        <remap if="$(arg hacked_control)" from="cmd_vel_out" to="/twist_muxed/cmd_vel"/>
+        <remap unless="$(arg hacked_control)" from="cmd_vel_out" to="/mobile_base_controller/cmd_vel"/>
     </node>
 </launch>

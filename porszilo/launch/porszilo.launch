@@ -10,8 +10,8 @@
 	<arg name="world_name"           default="$(find porszilo_description)/worlds/dolly_city.world"/>
 	<arg name="gz_verbose"           default="false"/>
 
-  <arg name="x"                    default="0.0"/>
-  <arg name="y"                    default="0.0"/>
+  <arg name="x"                    default="3.0"/>
+  <arg name="y"                    default="1.0"/>
   <arg name="z"                    default="0.0"/>
   <arg name="Y"                    default="0.0" />
 
@@ -21,6 +21,7 @@
 	<!-- urdf -->
 	<arg name="model"                default="$(find porszilo_description)/urdf/komodo2_gazebo.xacro"/>
 	<arg name="controllers"          default="true"/>
+	<arg name="hacked_control"       default="false"/> <!-- doesn't work -->
 	<arg name="rgb_cam"              default="true"/>
 	<arg name="depth_cam"            default="true"/>
 	<arg name="imu"                  default="true"/>
@@ -77,7 +78,11 @@
 		</group>
 	</group>
 
-		<include if="$(arg controllers)" file="$(find porszilo_control)/launch/porszilo_controllers.launch"/>
+		<group if="$(arg controllers)">
+			<include unless="$(arg hacked_control)" file="$(find porszilo_control)/launch/porszilo_controllers.launch"/>
+			<node if="$(arg hacked_control)" required="true"
+				name="controller" pkg="porszilo_control" type="hacked_controller.py"/>
+		</group>
     
 		<node if="$(arg rviz)" 
 				name="rviz" pkg="rviz" type="rviz" 
@@ -114,7 +119,9 @@
         
     </group>
     
-    <include if="$(arg twist_mux)"   file="$(find ros_twist_mux)/launch/twist_mux.launch" />
+    <include if="$(arg twist_mux)"   file="$(find ros_twist_mux)/launch/twist_mux.launch" >
+		<arg name="hacked_control" value="$(arg hacked_control)"/>
+	</include>
     
     <include if="$(arg hector_slam)" file="$(find porszilo_navigation)/launch/hector_slam.launch" >
 			<arg unless="$(arg rtabmap)" name="pub_map_odom_transform" value="true"/>
@@ -123,10 +130,10 @@
 		<include if="$(arg cartographer)" file="$(find porszilo_navigation)/launch/cartographer.launch"/>
 
     <include if="$(arg rtabmap)"     file="$(find porszilo_navigation)/launch/rtabmap.launch">
-			<arg name="simulation"          value="$(arg simulation)"/>
+		<arg name="simulation"          value="$(arg simulation)"/>
     	<arg name="localization"        value="$(arg localization)"/>
-			<arg name="args"                value="$(arg args)"/>
-		</include>
+		<arg name="args"                value="$(arg args)"/>
+	</include>
     
     <include if="$(arg robot_localization)"	file="$(find porszilo_navigation)/launch/robot_localization.launch">
 			<arg name="imu_publish_tf" value="$(arg imu_publish_tf)"/>
@@ -134,12 +141,12 @@
 		</include>
 
     <include if="$(arg move_base)"   file="$(find porszilo_navigation)/launch/move_base.launch">
-			<arg if="$(arg hector_slam)" name="move_base_map_topic" default="/hector_slam/map"/>
-			<group unless="$(arg hector_slam)">
-				<arg if="$(arg rtabmap)" name="move_base_map_topic" default="/rtabmap/octomap_grid"/>
-				<arg unless="$(arg rtabmap)" name="move_base_map_topic" default="/map"/>
-			</group>
-		</include>
+		<arg if="$(arg hector_slam)" name="move_base_map_topic" value="/hector_slam/map"/>
+		<group unless="$(arg hector_slam)">
+			<arg if="$(arg rtabmap)" name="move_base_map_topic" value="/rtabmap/octomap_grid"/>
+			<arg unless="$(arg rtabmap)" name="move_base_map_topic" value="/map"/>
+		</group>
+	</include>
 
 		<node if="$(arg keyboard)" output="screen"
 			name="teleop_keyboard" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py">
@@ -156,7 +163,7 @@
     <node if="$(arg have_map)" name="map_server" pkg="map_server" type="map_server" args="$(arg map)" />
 
 		<include if="$(arg telepresence)" 
-				file="$(find porszilo_telepresence)/launch/telepresence.launch"/>
+				file="$(find porszilo_telepresence_v2)/launch/telepresence.launch"/>
 
     <!--group if="$(arg moveit)">
         <include file="$(find komodo2_moveit_config)/launch/move_group.launch" />
