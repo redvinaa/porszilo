@@ -6,12 +6,39 @@ block scripts
 
 	script(src="/telepresence-main.js")
 
+	style.
+		img { 
+		image-rendering: optimizeSpeed;             /* STOP SMOOTHING, GIVE ME SPEED  */
+		image-rendering: -moz-crisp-edges;          /* Firefox                        */
+		image-rendering: -o-crisp-edges;            /* Opera                          */
+		image-rendering: -webkit-optimize-contrast; /* Chrome (and eventually Safari) */
+		image-rendering: pixelated; /* Chrome */
+		image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
+		-ms-interpolation-mode: nearest-neighbor;   /* IE8+                           */
+		}
+
 block content
 
-	div.jumbotron.jumbotron-fluid
-		div.container.text-center
+	div.text-center
+		div.jumbotron.jumbotron-fluid
 			h1 Telepresence control
+		div.container
 			img#screen.img-fluid(src="http://localhost:8080/stream?topic=/telepresence/image")
-			div#invalid_pos.alert.alert-danger.hidden(role="alert")
-				h5 Clicked position is invalid
-			button#cancel_goal.btn.btn-primary.mb-2 Cancel goal
+		div.container
+			div.btn-group.btn-group-lg.d-flex
+				button.btn.btn-flex.btn-primary#left Left
+				button.btn.btn-flex.btn-danger#cancel Cancel goal
+				button.btn.btn-flex.btn-primary#right Right
+		div.container
+	// img#grid(src="http://localhost:8080/stream?topic=/telepresence/grid")
+	//-
+		div.jumbotron.jumbotron-fluid
+			h1 Telepresence control
+		div.row
+			div.col-md-6
+				img#screen.img-fluid(src="http://localhost:8080/stream?topic=/telepresence/image")
+				div#invalid_pos.alert.alert-danger.hidden(role="alert")
+					h5 Clicked position is invalid
+				button#cancel_goal.btn.btn-primary.mb-2 Cancel goal
+			div.col-md-6
+				img#grid.img-fluid(src="http://localhost:8080/stream?topic=/telepresence/grid")

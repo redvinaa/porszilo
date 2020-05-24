@@ -375,7 +375,7 @@ Edited by RoboTiCan
     name="camera_link" />
     <joint name="camera_joint" type="fixed">
         <origin
-        xyz="0.25525 0.0006082 0.163584"
+        xyz="0.25525 0.0006082 1.863584"
         rpy="0 0 0" />
     <parent
         link="base_link" />

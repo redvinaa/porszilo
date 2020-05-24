@@ -7,7 +7,8 @@
 	<!-- gazebo -->
 	<arg name="gui"                  default="false"/>
 	<arg name="paused"               default="false"/>
-	<arg name="world_name"           default="$(find porszilo_description)/worlds/dolly_city.world"/>
+	<!-- <arg name="world_name"           default="$(find porszilo_description)/worlds/dolly_city.world"/> -->
+	<arg name="world_name"           default="$(find porszilo_gazebo)/worlds/myworld"/>
 	<arg name="gz_verbose"           default="false"/>
 
   <arg name="x"                    default="3.0"/>
@@ -29,11 +30,11 @@
 
 	<!-- mapping -->
 	<arg name="imu_publish_tf"       default="false"/>
-	<arg name="hector_slam"          default="true"/>
-	<arg name="cartographer"         default="false"/>
+	<arg name="hector_slam"          default="false"/>
 	<arg name="rtabmap"              default="true"/>
 	<arg name="have_map"             default="false"/>
 	<arg name="map"                  default="$(find porszilo)/maps/map.yaml"/>
+	<arg name="move_base_map"        default="/rtabmap/grid_prob_map"/>
 	<arg name="robot_localization"   default="true"/>
 			<!-- rtabmap -->
 			<arg name="localization"        default="false"/>
@@ -89,12 +90,10 @@
 				args="-d $(find porszilo_description)/config/porszilo.rviz"/>
 
     <!--if no one publishes map-odom tf, load static tf-->
-		<group unless="$(arg hector_slam)">
-			<group unless="$(arg cartographer)">
-				<group unless="$(arg imu_publish_tf)">
-					<node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster" 
-							args="0 0 0 0 0 0 /map /odom 10" /> 
-				</group>
+		<group unless="$(arg rtabmap)">
+			<group unless="$(arg imu_publish_tf)">
+				<node pkg="tf" type="static_transform_publisher" name="map_odom_broadcaster" 
+					args="0 0 0 0 0 0 /map /odom 10" /> 
 			</group>
 		</group>
     
@@ -127,8 +126,6 @@
 			<arg unless="$(arg rtabmap)" name="pub_map_odom_transform" value="true"/>
 		</include>
 
-		<include if="$(arg cartographer)" file="$(find porszilo_navigation)/launch/cartographer.launch"/>
-
     <include if="$(arg rtabmap)"     file="$(find porszilo_navigation)/launch/rtabmap.launch">
 		<arg name="simulation"          value="$(arg simulation)"/>
     	<arg name="localization"        value="$(arg localization)"/>
@@ -141,11 +138,12 @@
 		</include>
 
     <include if="$(arg move_base)"   file="$(find porszilo_navigation)/launch/move_base.launch">
-		<arg if="$(arg hector_slam)" name="move_base_map_topic" value="/hector_slam/map"/>
+		<arg name="move_base_map_topic" value="$(arg move_base_map)"/>
+		<!-- <arg if="$(arg hector_slam)" name="move_base_map_topic" value="/hector_slam/map"/>
 		<group unless="$(arg hector_slam)">
 			<arg if="$(arg rtabmap)" name="move_base_map_topic" value="/rtabmap/octomap_grid"/>
 			<arg unless="$(arg rtabmap)" name="move_base_map_topic" value="/map"/>
-		</group>
+		</group> -->
 	</include>
 
 		<node if="$(arg keyboard)" output="screen"

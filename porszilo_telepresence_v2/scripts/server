@@ -1,0 +1,3 @@
+#! /bin/bash
+
+nodemon $(rospack find porszilo_telepresence_v2)/index.js

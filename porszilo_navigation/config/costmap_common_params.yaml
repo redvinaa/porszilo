@@ -43,7 +43,7 @@ plugins:
 - {name: inflater_layer,  type: "costmap_2d::InflationLayer"}
 
 static_layer:
-  map_topic: /hector_slam/map
+  map_topic: /rtabmap/grid_prob_map
   subscribe_to_updates: true
 
 obstacles_layer:

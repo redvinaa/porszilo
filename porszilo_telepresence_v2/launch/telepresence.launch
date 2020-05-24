@@ -6,6 +6,10 @@
 		<param name="address" value="localhost"/>
 	</node>
 
+	<node name="telepresence_server" 
+			pkg="porszilo_telepresence_v2" type="server" output="screen">
+	</node>
+
 	<node name="telepresence" 
 			pkg="porszilo_telepresence_v2" type="telepresence.py" output="screen">
 	</node>

@@ -1,0 +1,30 @@
+% network
+\documentclass[a4paper, 10pt]{article}
+\input{misc/usepackage}
+\input{misc/setup}
+% py_init
+
+\begin{document}
+
+\pagestyle{empty}
+\def\a{5mm}
+
+Most így néz ki a hálózat egy robottal:
+\begin{figure}[H]
+ \centering
+ {\includegraphics[width=.9\textwidth]{drawn_on}}
+\end{figure}
+\vspace{\a}
+\hrule
+\vspace{\a}
+A topic-okat bele kell rakni egy \verb|/robotN| namespace-be, hogy valahogy így nézzen ki leegyszerűsítve a dolog:
+\begin{figure}[H]
+ \centering
+ {\includegraphics[width=.7\textwidth]{simple}}
+\end{figure}
+\vspace{\a}
+\hrule
+\vspace{\a}
+Így aztán majd lehet hivatkozni a robotokra, pl. egy belső weboldalon ki tudják majd választani a pincérek hogy melyik robotot szeretnék az adott asztalhoz küldeni, melyik robot hol van, vagy hogy melyik robotot szeretnék telepresence-el irányítani.
+
+\end{document}
