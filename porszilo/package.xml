@@ -10,6 +10,8 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roslaunch</build_depend>
 
+  <depend>turtlebot3_gazebo</depend>
+
   <export>
   </export>
 </package>
